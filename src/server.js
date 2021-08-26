@@ -1,6 +1,7 @@
 // server와 관련된 javascript파일
-
+import http from 'http';
 import express from 'express';
+import WebSocket from 'ws';
 
 const app = express();
 
@@ -21,5 +22,32 @@ app.get("/", (req,res) => res.render("home"));
 app.get('/*', (req,res) => res.redirect("/"));
 
 const handleListen = () => console.log('Listening on http://localhost:3000');
+// const handleListen = () => console.log('Listening on ws://localhost:3000');
 
-app.listen(3000, handleListen);
+
+const server = http.createServer(app); //requestListener를 app으로 등록(http 서버)
+const wss = new WebSocket.Server( {server} ); // http, websocket 둘 다 사용 가능 (필수 아님) 동일한 포트에서 http, wss둘다 처리 가능.
+
+// 이 소켓으로 실시간 소통 가능.(연결된 브라우저)
+wss.on("connection", (socket) => {
+    console.log("Connected to Browser");
+    socket.on("close", ()=> console.log("disconnected from the browser..")); // 브라우저에서 연결을 끊었을 때
+    socket.send("hello!"); //브라우저에 메세지를 보냄.
+    socket.on("message", message => {
+        console.log(message.toString('utf8'));
+    })
+}); //연결이 이루어지면 핸들러 작동.
+server.listen(3000, handleListen);
+
+// app.listen(3000, handleListen);
+
+
+
+
+
+
+
+
+//socket.on  >>  이벤트리스너라고 생각하기
+//socket.send()   >>   메세지 보내기
+
