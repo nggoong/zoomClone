@@ -2,7 +2,8 @@
 
 Zoom Clone using Node js, WebRTC and Websockets😊
 
-##skill stack
+## skill stack
 1. Vanilla javascript
 1. Node js, pug
-1. nodemonn
+1. nodemon
+1. ws (Websocket for javascript) 👉 npm install ws

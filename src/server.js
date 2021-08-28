@@ -28,13 +28,27 @@ const handleListen = () => console.log('Listening on http://localhost:3000');
 const server = http.createServer(app); //requestListener를 app으로 등록(http 서버)
 const wss = new WebSocket.Server( {server} ); // http, websocket 둘 다 사용 가능 (필수 아님) 동일한 포트에서 http, wss둘다 처리 가능.
 
+const sockets = [];
+
+
 // 이 소켓으로 실시간 소통 가능.(연결된 브라우저)
 wss.on("connection", (socket) => {
+    sockets.push(socket); // 연결된 브라우저를 sockets Array에 넣어줌.
+    socket["nickname"] = "anonymous"
     console.log("Connected to Browser");
     socket.on("close", ()=> console.log("disconnected from the browser..")); // 브라우저에서 연결을 끊었을 때
-    socket.send("hello!"); //브라우저에 메세지를 보냄.
-    socket.on("message", message => {
-        console.log(message.toString('utf8'));
+    //socket.send("hello!"); //브라우저에 메세지를 보냄.
+    // socket.on("message", message => {
+    //     console.log(message.toString('utf8'));
+    // })
+    socket.on("message", msg => {
+        const message = JSON.parse(msg);
+        if(message.type === 'new_message') {
+            sockets.forEach(aSocket=>aSocket.send(`${socket.nickname.toString('utf8')} : ${message.payload.toString('utf8')}`)); // 모든 브라우저의 소켓을 통해 메세지를 보냄.
+        }else if(message.type === 'nickname') {
+            socket["nickname"] = message.payload; // socket은 기본적으로 객체임. 아무거나 저장할 수 있음.
+        }
+        
     })
 }); //연결이 이루어지면 핸들러 작동.
 server.listen(3000, handleListen);
