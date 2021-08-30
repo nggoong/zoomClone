@@ -1,57 +1,43 @@
-// front-end와 관련된 javascript 파일
+// socket.io를 사용한 javascript파일
 
-// 서버로의 연결
-const socket = new WebSocket(`ws://${window.location.host}`); // front-end에서 back-end wss로 연결.
+const socket = io(); // server와 연결.
 
-const messageList = document.querySelector("ul");
-const nickForm = document.querySelector('#nick');
-const messageForm = document.querySelector('#message');
+const welcome = document.querySelector('#welcome');
+const form = welcome.querySelector("form");
 
-function makeMessage(type, payload) {
-    const msg = {type, payload};
-    return JSON.stringify(msg);
-}
-
-
-
-// 서버와 연결되었을 때
-socket.addEventListener("open", ()=> {
-    console.log("Connected to Server");
-})
-
-// 서버에서 메세지를 받았을 때
-socket.addEventListener("message", (message) => {
-    const li = document.createElement("li");
-    li.innerText = message.data;
-    messageList.append(li);
-})
-
-// 서버와의 연결이 끊어졌을 때
-socket.addEventListener("close", ()=> {
-    console.log("disconnected from server..");
-})
-
-
-// setTimeout(()=> {
-//     socket.send("hello from the browser.");
-// }, 10000)
-
-
-
-function handleSubmit(event) {
-    event.preventDefault(); //이벤트 전파를 막음.
-    const input = messageForm.querySelector("input");
-    socket.send(makeMessage("new_message", input.value));
-    input.value = "";
-}
-
-function handleNickSubmit(event) {
+function handleRoomSubmit(event) {
     event.preventDefault();
-    alert('saved your nickname sucessfully.');
-    const input = nickForm.querySelector('input');
-    socket.send(makeMessage("nickname", input.value));
+    const input = form.querySelector("input");
+    // 세 번째 인자(함수)는 서버에서 호출하는 function이 들어감.
+    socket.emit('enter_room', { payload : input.value }, ()=> {
+        console.log('server is done!'); 
+    });
     input.value = "";
 }
 
-messageForm.addEventListener("submit", handleSubmit);
-nickForm.addEventListener("submit", handleNickSubmit);
+form.addEventListener("submit", handleRoomSubmit);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ws와 다른 점
+// 1. socket의 종류를 id로 자동 구분하기 떄문에 편리함.
+// 2. socket.emit()을 통해 이벤트를 다룰 수 있음.(ws.send()와 동일한 기능)
+// 3. socket.emit()의 이벤트 이름은 개발자 마음대로 정할 수 있음 ex) enter_room, exit_room etc...
+// 4. socket.emit()으로 JSON or Object를 보낼 수 있음.. ws는 string만 됐었음.
