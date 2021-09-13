@@ -30,10 +30,14 @@ const httpServer = http.createServer(app); //requestListener를 app으로 등록
 const wsServer = SocketIO(httpServer);
 
 wsServer.on("connection", socket => {
-    socket.on("enter_room", (msg, done)=> {
-        setTimeout(()=> {
-            done();
-        },10000);
+    socket.onAny((event)=>{
+        console.log(`Socket Event : ${event}`);
+    })
+    socket.on("enter_room", (roomName, done)=> {
+        //console.log(socket.rooms); // socket이 어떤 room에 있는지 확인 가능
+        socket.join(roomName); // room에 입장함.
+        //console.log(socket.rooms);
+        done();
     })
 })
 
