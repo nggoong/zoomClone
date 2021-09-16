@@ -69,6 +69,20 @@ socket.on("bye", (left)=> {
 
 socket.on("new_message", addMessage)
 
+socket.on("room_change", (rooms)=> {
+    const roomList = welcome.querySelector("ul");
+    roomList.innerHTML = "";
+    if(rooms.length === 0) {
+        roomList.innerHTML = "";
+        return;
+    }
+    
+    rooms.forEach(room=> {
+        const li = document.createElement("li");
+        li.innerText = room;
+        roomList.append(li);
+    })
+})
 
 
 
@@ -90,3 +104,4 @@ socket.on("new_message", addMessage)
 // 2. socket.emit()을 통해 이벤트를 다룰 수 있음.(ws.send()와 동일한 기능)
 // 3. socket.emit()의 이벤트 이름은 개발자 마음대로 정할 수 있음 ex) enter_room, exit_room etc...
 // 4. socket.emit()으로 JSON or Object를 보낼 수 있음.. ws는 string만 됐었음.
+// 5. socket id와 room의 id는 같은 것이 있다. 즉 private room으로 귓속말을 지원할 수 있음.

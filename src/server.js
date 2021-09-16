@@ -29,6 +29,24 @@ const handleListen = () => console.log('Listening on http://localhost:3000');
 const httpServer = http.createServer(app); //requestListener를 app으로 등록(http 서버)
 const wsServer = SocketIO(httpServer);
 
+function publicRooms() {
+    // const sids = wsServer.sockets.adapter.sids;
+    // const rooms = wsServer.sockets.adapter.rooms;
+    const {
+        sockets: {
+            adapter: {sids, rooms},
+        },
+    } = wsServer;
+
+    const publicRooms = [];
+    rooms.forEach((_, key) => {
+        if(sids.get(key) === undefined) {
+            publicRooms.push(key);
+        }
+    })
+    return publicRooms;
+}
+
 wsServer.on("connection", socket => {
     socket["nickname"] = "Anon";
     socket.onAny((event)=>{
@@ -39,12 +57,20 @@ wsServer.on("connection", socket => {
         socket.join(roomName); // room에 입장함.
         //console.log(socket.rooms);
         done();
-        socket.to(roomName).emit("welcome", socket.nickname); // 룸에 있는 모든 사람들에게 메시지를 보냄.
+        // socket.to(roomName).emit("welcome", socket.nickname); // 룸에 있는 모든 사람들에게 메시지를 보냄.
+        wsServer.sockets.emit("room_change", publicRooms());
     })
+
+    // 서버와 연결이 끊어지기 직전에 발생하는 이벤트
     socket.on("disconnecting", ()=> {
         socket.rooms.forEach(room => {
             socket.to(room).emit("bye", socket.nickname);            
         });
+    })
+
+    // 서버와의 연결이 끊어지면 발생하는 이벤트
+    socket.on("disconnect", () => {
+        wsServer.sockets.emit("room_change", publicRooms());
     })
     socket.on("new_message", (msg, room, done)=> {
         socket.to(room).emit("new_message", `${socket.nickname} : ${msg}`);
