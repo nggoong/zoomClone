@@ -2,106 +2,96 @@
 
 const socket = io(); // server와 연결.
 
-const welcome = document.querySelector('#welcome');
-const form = welcome.querySelector("form");
-const room = document.getElementById("room");
+const myFace = document.getElementById("myFace");
+const muteBtn = document.getElementById("mute");
+const cameraBtn = document.getElementById("camera");
+const camerasSelect = document.getElementById("cameras");
 
-room.hidden = true;
-
-let roomName;
-
-function addMessage(message) {
-    const ul = room.querySelector("ul");
-    const li = document.createElement("li");
-    li.innerText = message;
-    ul.appendChild(li);
-}
-
-function handleMessageSubmit(event) {
-    event.preventDefault();
-    const input = room.querySelector("#msg input");
-    const value = input.value;
-    socket.emit("new_message", input.value, roomName, ()=> {
-        addMessage(`You: ${value}`);
-    });
-    input.value = "";
-}
-
-function handleNicknameSubmit(event) {
-    event.preventDefault();
-    const input = room.querySelector("#name input");
-    const value = input.value;
-    socket.emit("nickname", input.value);
-}
-
-function showRoom() 
-{
-    welcome.hidden = true;
-    room.hidden = false;
-    const h3 = room.querySelector("h3");
-    h3.innerText = `Room ${roomName}`;
-    const msgForm = room.querySelector("#msg");
-    const nameForm = room.querySelector("#name");
-    msgForm.addEventListener("submit", handleMessageSubmit);
-    nameForm.addEventListener("submit", handleNicknameSubmit);
-}
+let myStream;
+let muted = false;
+let cameraOff = false;
 
 
-function handleRoomSubmit(event) {
-    event.preventDefault();
-    const input = form.querySelector("input");
-    // 세 번째 인자(함수)는 서버에서 호출하는 function이 들어감.
-    socket.emit('enter_room', input.value, showRoom);
-    roomName = input.value;
-    input.value = "";
-}
 
-form.addEventListener("submit", handleRoomSubmit);
-
-
-socket.on("welcome", (user)=> {
-    addMessage(`${user} arrived!`);
-})
-
-socket.on("bye", (left)=> {
-    addMessage(`${left} left ㅠㅠ`);
-})
-
-socket.on("new_message", addMessage)
-
-socket.on("room_change", (rooms)=> {
-    const roomList = welcome.querySelector("ul");
-    roomList.innerHTML = "";
-    if(rooms.length === 0) {
-        roomList.innerHTML = "";
-        return;
+async function getCameras() {
+    try{
+        const devices = await navigator.mediaDevices.enumerateDevices(); // 전체 유저의 미디어정보를 가져옴.
+        const cameras = devices.filter(device => device.kind === "videoinput") // 유저의 비디오에 접근
+        const currentCamera = myStream.getVideoTracks()[0];
+        cameras.forEach(camera => {
+            const option = document.createElement("option");
+            option.value = camera.device;
+            option.innerText = camera.label;
+            if(currentCamera.label === camera.label) {
+                option.selected = true;
+            }
+            camerasSelect.appendChild(option)
+        })
+        console.log(cameras);
     }
-    
-    rooms.forEach(room=> {
-        const li = document.createElement("li");
-        li.innerText = room;
-        roomList.append(li);
-    })
-})
+    catch(e){
+        console.log(e)
+    }
+}
 
+async function getMedia(deviceId){
+    // 카메라를 만들기 전 초기화
+    const initialConstrains = {
+        audio: true,
+        video: {facingMode: "user"}
+    };
+    // deviceId가 있을 때 실행될거임
+    const cameraConstrains = {
+        audio:true,
+        video: {deviced: {exact: deviceId} },
+    }
+    try{
+        myStream = await navigator.mediaDevices.getUserMedia(
+            deviceId ? cameraConstrains : initialConstrains
+        );
+        myFace.srcObject = myStream;
+        if(!deviceId){
+            await getCameras();
+        }
+    } catch (e) {
+        console.log(e);
+    }
+}
 
+getMedia();
 
+function handleMuteClick() {
+    myStream
+    .getAudioTracks()
+    .forEach((track) => (track.enabled = !track.enabled));
+    if(!muted) {
+        muteBtn.innerText = "Unmute"
+        muted = true;
+    }
+    else {
+        muteBtn.innerText = "Mute"
+        muted = false;
+    }
+}
 
+function handleCameraClick() {
+    myStream
+    .getVideoTracks()
+    .forEach((track) => (track.enabled = !track.enabled));
+    if(cameraOff) {
+        cameraBtn.innerText = "Turn Camera Off";
+        cameraOff = false;
+    }
+    else {
+        cameraBtn.innerText = "Turn Camera On";
+        cameraOff = true;
+    }
+}
 
+async function handleCameraChange() {
+    await getMedia(camerasSelect.value);
+}
 
-
-
-
-
-
-
-
-
-
-
-// ws와 다른 점
-// 1. socket의 종류를 id로 자동 구분하기 떄문에 편리함.
-// 2. socket.emit()을 통해 이벤트를 다룰 수 있음.(ws.send()와 동일한 기능)
-// 3. socket.emit()의 이벤트 이름은 개발자 마음대로 정할 수 있음 ex) enter_room, exit_room etc...
-// 4. socket.emit()으로 JSON or Object를 보낼 수 있음.. ws는 string만 됐었음.
-// 5. socket id와 room의 id는 같은 것이 있다. 즉 private room으로 귓속말을 지원할 수 있음.
+muteBtn.addEventListener("click", handleMuteClick);
+cameraBtn.addEventListener("click",handleCameraClick);
+camerasSelect.addEventListener("input", handleCameraChange);
